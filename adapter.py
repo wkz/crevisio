@@ -41,10 +41,9 @@ class Adapter (object):
     def close (self):
         self._poll_lock.acquire ()
 
-        if self.subs:
-            self._poll_term.set ()
-            self._poll_thread.join ()
-            self._poll_term.clear ()
+        self._poll_term.set ()
+        self._poll_thread.join ()
+        self._poll_term.clear ()
 
         self._poll_lock.release ()
 
@@ -53,6 +52,10 @@ class Adapter (object):
             return None
 
         return self.slots[slot]
+
+    def poll (self):
+        [self.slots[s].poll_prepare () for s in self.slots]
+        return {s: self.slots[s].poll_cache for s in self.slots}
 
     def _poll (self, interval=0.5):
         while True:
@@ -83,7 +86,7 @@ class Adapter (object):
             self._poll_thread = threading.Thread (target=self._poll)
             self._poll_thread.start ()
 
-        ret = {s: self.slots[s].poll_cache for s in self.slots}
+        ret = {s: [(i, val) for (i, val) in enumerate (self.slots[s].poll_cache)] for s in self.slots}
         self._poll_lock.release ()
 
         return ret

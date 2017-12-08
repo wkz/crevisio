@@ -1,18 +1,27 @@
 import struct
-
+import time
 
 import pymodbus.client.sync
-import pymodbus.register_read_message
+import pymodbus.register_read_message as rrm
 
 
 class CrevisModbus (pymodbus.client.sync.ModbusTcpClient):
     def read_sr (self, reg, maxlen=1):
-        r = self.read_holding_registers (reg, count=maxlen)
+        r = None
+        tryCount = 5
+        while(tryCount > 0 and
+              type(r) != rrm.ReadHoldingRegistersResponse):
 
-        if type (r) != pymodbus.register_read_message.ReadHoldingRegistersResponse:
+            r = self.read_holding_registers (reg, count=maxlen)
+            if type(r) != rrm.ReadHoldingRegistersResponse:
+                time.sleep(0.5)
+
+            tryCount -= 1
+
+        if type (r) != rrm.ReadHoldingRegistersResponse:
             print "READ FAIL: %#x(%d)" % (reg, maxlen)
             return None
-        
+
         if maxlen == 1:
             return r.registers[0]
 

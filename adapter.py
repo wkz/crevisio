@@ -17,6 +17,8 @@ class Adapter (object):
         self.hw = modbus.CrevisModbus (host)
 
         vid = self.hw.read_sr (regs.adapter_id.vendor_id)
+        if vid == None:
+            raise Exception ("Crevis IO communication error with io: %s" % self.hw)
         if vid != 0x02e5:
             raise Exception ("%s does not appear to be a Crevis I/O adapter, got vendor id %#x" % (host, vid))
 
@@ -32,7 +34,7 @@ class Adapter (object):
 
         for slot in self.slots:
             ret += "\tSlot %d: %s\n" % (slot, self.slots[slot])
-        
+
         return ret
 
     def __getitem__ (self, slot):
@@ -101,4 +103,3 @@ class Adapter (object):
             self._poll_term.clear ()
 
         self._poll_lock.release ()
-

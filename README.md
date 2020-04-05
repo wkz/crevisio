@@ -18,3 +18,4 @@ print repr(io)
 io[0][4] = True
 ```
 
+For a more complete example, see [cio](cio).

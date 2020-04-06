@@ -37,6 +37,10 @@ class Adapter (object):
 
         return ret
 
+    def __iter__ (self):
+        for k, v in self.slots.items():
+            yield k, v
+
     def __getitem__ (self, slot):
         return self.slot (slot)
 

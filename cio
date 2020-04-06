@@ -19,35 +19,170 @@
 #           He explained how it works so Joachim Nilsson could write cio.
 
 import argparse
-import crevisio
+import os
 import sys
+import time
+import yaml
 
-veiron="198.18.122.10"
+sys.path.insert(1, os.path.join(sys.path[0], ".."))
+import crevisio
+
+cfg = {}
+
+def aliasbypin(slot, pin):
+    if not "aliases" in cfg:
+        return None
+
+    for a in cfg["aliases"]:
+        if not ("name" in a and "slot" in a and "pin" in a):
+            continue
+
+        if a["slot"] == slot and a["pin"] == pin:
+            return a
+
+    return None
+
+def aliasbyname(name):
+    if not "aliases" in cfg:
+        return None
+
+    for a in cfg["aliases"]:
+        if not ("name" in a and "slot" in a and "pin" in a):
+            continue
+
+        if a["name"] == name:
+            return a
+
+    return None
+
+def dump(io, color):
+    def paint(txt, code):
+        if color:
+            return "\x1b[" + code + "m" + txt + "\x1b[0m"
+        else:
+            return txt
+    def invert(txt):
+        return paint(txt, "7")
+    def green(txt):
+        return paint(txt, "32")
+    def red(txt):
+        return paint(txt, "31")
+
+    print invert("%4.4s  %-40s") % ("SLOT" , "MODULE")
+    print "%4.4s  %-74s" % ("-", str(io))
+    for s, slot in io:
+        print "%4u  %-74s" % (s, slot)
+    print
+
+    print invert("%4s  %3s  %-4s  %-16s  %-5s") \
+        % ("SLOT", "PIN", "TYPE", "ALIAS" , "LEVEL")
+
+    for s, slot in io:
+        pins = slot.input_num + slot.output_num
+
+        for p in range(pins):
+            a = aliasbypin(s, p)
+            typ = "Out" if slot.is_output(p) else "In"
+            name = a["name"] if a else ""
+            level = "On" if slot[p] else "Off"
+            line = "%4u  %3u  %-4s  %-16s  %-5s" \
+                % (s, p, typ, name, level)
+
+            if slot[p]:
+                print green(line)
+            else:
+                print red(line)
+
+def on(io, pin):
+    io[pin[0]][pin[1]] = True
+
+def off(io, pin):
+    io[pin[0]][pin[1]] = False
+
+def toggle(io, pin):
+    io[pin[0]][pin[1]] = not io[pin[0]][pin[1]]
+
+def cycle(io, pin):
+    if io[pin[0]][pin[1]]:
+        off(io, pin)
+        time.sleep(1)
+    on(io, pin)
+
+# Load config file if available
+for cfgfile in ["~/.cio.yaml", "~/.config/cio.yaml", "/etc/cio.yaml"]:
+    path = os.path.expanduser(cfgfile)
+    if not os.path.exists(path):
+        continue
+
+    cfg = yaml.load(open(path))
+    break
+
+class ParsePin(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string):
+        if not values:
+            return
+
+        a = aliasbyname(values)
+        if a:
+            namespace.pin = (a["slot"], a["pin"])
+        elif ":" in values:
+            namespace.pin = map(int, values.split(":"))
+        else:
+            raise argparse.ArgumentError(self, values + " is not a known pin.")
 
 parser = argparse.ArgumentParser(prog='cio')
-parser.add_argument('cmd', nargs='?', default=None, type=str, metavar='on|off',
-                    help="Enable or disable output pin")
-parser.add_argument('-a', dest='address', default=veiron, type=str, metavar='ADDR',
-                    help="Crevis IO adapter to connect to, default: %s" % veiron)
-parser.add_argument('-s', default=0, type=int, dest='slot', choices=range(0,2), metavar='0-1',
-	            help="I/O slot to operate on, default: 0")
-parser.add_argument('-p',            type=int, dest='pin',  choices=range(0,8), metavar='0-7',
-                    help="Pin in I/O slot to operate on")
+parser.add_argument('pin', nargs='?', default=None, metavar='SLOT:PIN|ALIAS',
+                    action=ParsePin, help="Pin to operate on.")
+parser.add_argument('cmd', nargs='?', default=None, choices=['cycle', 'on', 'off', 'toggle'],
+                    help="Power cycle, enable, disable or toggle output pin.")
+parser.add_argument('-a', dest='address', default=None, type=str, metavar='ADDR',
+                    help="Crevis IO adapter to connect to")
+parser.add_argument('-C', dest='color', default=True, action='store_false',
+                    help="Disable color in output.")
 args = parser.parse_args()
 
+if not args.address:
+    if "address" in cfg:
+        args.address = cfg["address"]
+    else:
+        sys.exit("No address provided, neither via -a option nor from any config file.")
+
 # Connect to I/O
-io = crevisio.adapter(args.address)
+try:
+    io = crevisio.adapter(args.address)
+except:
+    sys.exit("Unable to connect to %s." % args.address)
+
+
+if args.pin:
+    try:
+        slot = io[args.pin[0]]
+    except:
+        sys.exit("No module available in slot %u." % args.pin[0])
+
+    try:
+        out = slot.is_output(args.pin[1])
+        if args.cmd and not out:
+            sys.exit("Selected pin is an input and can't be modified.")
+    except:
+        sys.exit("Slot %u has no pin %u." % args.pin)
+
 
 if not args.cmd:
-    # Show status of adapter or specific slot/pin
+    # Show status of adapter or specific slot:pin
     if not args.pin:
-        print repr(io)
+        dump(io, args.color)
     else:
-        print repr(io[args.slot][args.pin])
+        print repr(io[args.pin[0]][args.pin[1]])
 else:
-    if not args.pin:
-        sys.exit("Missing -p PIN argument to enable/disable!")
+    ops = {
+        "cycle": cycle,
+        "on": on,
+        "off": off,
+        "toggle": toggle,
+    }
 
-    # Enable or disable pin output
-    io[args.slot][args.pin] = args.cmd.lower() in ['true', '1', 't', 'y', 'yes', 'on', 'ena', 'enable']
+    if args.cmd not in ops:
+        sys.exit("%s is not a known operation." % args.cmd)
 
+    ops[args.cmd](io, args.pin)

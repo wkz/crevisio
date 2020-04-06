@@ -1,0 +1,53 @@
+#!/usr/bin/env python
+#
+# NAME
+#           cio - Control Crevis Modbus I/O
+# SYNOPSIS
+#           cio [-h] [-a ADDR] [-s 0-1] [-p 0-7] [on|off]
+#
+# DESCRIPTION
+#           Connect to Crevios I/O adapter to query status and control
+#           module outputs.  Notice the built-in defaults.
+#
+# DEFAULTS
+#           I/O Adapter: 198.18.122.10
+#           Slot 0:      Default
+#           Slot 1:      N/A
+#
+# AUTHOR
+#           Tobias Waldekranz is the author of the crevisio python module.
+#           He explained how it works so Joachim Nilsson could write cio.
+
+import argparse
+import crevisio
+import sys
+
+veiron="198.18.122.10"
+
+parser = argparse.ArgumentParser(prog='cio')
+parser.add_argument('cmd', nargs='?', default=None, type=str, metavar='on|off',
+                    help="Enable or disable output pin")
+parser.add_argument('-a', dest='address', default=veiron, type=str, metavar='ADDR',
+                    help="Crevis IO adapter to connect to, default: %s" % veiron)
+parser.add_argument('-s', default=0, type=int, dest='slot', choices=range(0,2), metavar='0-1',
+	            help="I/O slot to operate on, default: 0")
+parser.add_argument('-p',            type=int, dest='pin',  choices=range(0,8), metavar='0-7',
+                    help="Pin in I/O slot to operate on")
+args = parser.parse_args()
+
+# Connect to I/O
+io = crevisio.adapter(args.address)
+
+if not args.cmd:
+    # Show status of adapter or specific slot/pin
+    if not args.pin:
+        print repr(io)
+    else:
+        print repr(io[args.slot][args.pin])
+else:
+    if not args.pin:
+        sys.exit("Missing -p PIN argument to enable/disable!")
+
+    # Enable or disable pin output
+    io[args.slot][args.pin] = args.cmd.lower() in ['true', '1', 't', 'y', 'yes', 'on', 'ena', 'enable']
+

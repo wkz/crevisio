@@ -1,9 +1,9 @@
 import time
 import threading
 
-import crevisio.modbus as modbus
-import crevisio.module as module
-import crevisio.regs   as regs
+from . import modbus
+from . import module
+from . import regs
 
 class Adapter (object):
     def __init__ (self, host):

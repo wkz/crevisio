@@ -27,12 +27,12 @@ class Module (object):
         def __ensure_valid_bit (self, bit, *args, **kwargs):
             if bit < 0 or bit >= (self.input_num + self.output_num):
                 raise ValueError ("Bit out of range")
-            
+
             return fn (self, bit, *args, **kwargs)
         return __ensure_valid_bit
 
     @_ensure_valid_bit
-    def is_output (self, bit):        
+    def is_output (self, bit):
         return bit >= self.input_num
 
     @_ensure_valid_bit

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# PYTHON_ARGCOMPLETE_OK
 #
 # NAME
 #           cio - Control Crevis Modbus I/O
@@ -18,7 +19,7 @@
 #           Tobias Waldekranz is the author of the crevisio python module.
 #           He explained how it works so Joachim Nilsson could write cio.
 
-import argparse
+import argcomplete, argparse
 import os
 import sys
 import time
@@ -117,7 +118,22 @@ for cfgfile in ["~/.cio.yaml", "~/.config/cio.yaml", "/etc/cio.yaml"]:
     cfg = yaml.load(open(path))
     break
 
-class ParsePin(argparse.Action):
+
+def PinCompleter(**kwargs):
+    aliases = []
+
+    if not "aliases" in cfg:
+        return []
+
+    for a in cfg["aliases"]:
+        if "name" not in a:
+            continue
+
+        aliases.append(a["name"])
+
+    return aliases
+
+class PinParser(argparse.Action):
     def __call__(self, parser, namespace, values, option_string):
         if not values:
             return
@@ -132,13 +148,15 @@ class ParsePin(argparse.Action):
 
 parser = argparse.ArgumentParser(prog='cio')
 parser.add_argument('pin', nargs='?', default=None, metavar='SLOT:PIN|ALIAS',
-                    action=ParsePin, help="Pin to operate on.")
+                    action=PinParser, help="Pin to operate on.").completer = PinCompleter
 parser.add_argument('cmd', nargs='?', default=None, choices=['cycle', 'on', 'off', 'toggle'],
                     help="Power cycle, enable, disable or toggle output pin.")
 parser.add_argument('-a', dest='address', default=None, type=str, metavar='ADDR',
                     help="Crevis IO adapter to connect to")
 parser.add_argument('-C', dest='color', default=True, action='store_false',
                     help="Disable color in output.")
+
+argcomplete.autocomplete(parser)
 args = parser.parse_args()
 
 if not args.address:

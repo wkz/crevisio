@@ -109,11 +109,18 @@ def cycle(io, pin):
         time.sleep(1)
     on(io, pin)
 
+def pulse(io, pin):
+    if not io[pin[0]][pin[1]]:
+        on(io, pin)
+        time.sleep(1)
+    off(io, pin)
+
 ops = {
     "on": on,
     "off": off,
     "toggle": toggle,
     "cycle": cycle,
+    "pulse": pulse,
 }
 
 # Load config file if available

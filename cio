@@ -109,6 +109,13 @@ def cycle(io, pin):
         time.sleep(1)
     on(io, pin)
 
+ops = {
+    "on": on,
+    "off": off,
+    "toggle": toggle,
+    "cycle": cycle,
+}
+
 # Load config file if available
 for cfgfile in ["~/.cio.yaml", "~/.config/cio.yaml", "/etc/cio.yaml"]:
     path = os.path.expanduser(cfgfile)
@@ -149,7 +156,7 @@ class PinParser(argparse.Action):
 parser = argparse.ArgumentParser(prog='cio')
 parser.add_argument('pin', nargs='?', default=None, metavar='SLOT:PIN|ALIAS',
                     action=PinParser, help="Pin to operate on.").completer = PinCompleter
-parser.add_argument('cmd', nargs='?', default=None, choices=['cycle', 'on', 'off', 'toggle'],
+parser.add_argument('cmd', nargs='?', default=None, choices=ops.keys(),
                     help="Power cycle, enable, disable or toggle output pin.")
 parser.add_argument('-a', dest='address', default=None, type=str, metavar='ADDR',
                     help="Crevis IO adapter to connect to")
@@ -193,13 +200,6 @@ if not args.cmd:
     else:
         print repr(io[args.pin[0]][args.pin[1]])
 else:
-    ops = {
-        "cycle": cycle,
-        "on": on,
-        "off": off,
-        "toggle": toggle,
-    }
-
     if args.cmd not in ops:
         sys.exit("%s is not a known operation." % args.cmd)
 

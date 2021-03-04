@@ -19,7 +19,7 @@ class CrevisModbus (pymodbus.client.sync.ModbusTcpClient):
             tryCount -= 1
 
         if type (r) != rrm.ReadHoldingRegistersResponse:
-            print "READ FAIL: %#x(%d)" % (reg, maxlen)
+            print("READ FAIL: %#x(%d)" % (reg, maxlen))
             return None
 
         if maxlen == 1:

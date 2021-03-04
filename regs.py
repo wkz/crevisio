@@ -20,7 +20,7 @@ class RegisterMap (object):
         return self.base + self.regs[attr]
 
     def __repr__ (self):
-        regs = list (self.regs.iteritems ())
+        regs = list (self.regs.items ())
         regs.sort (key=lambda x: x[1])
 
         ret = "RegisterMap(base: %#x, size: %#x):\n" % (self.base, self.size)

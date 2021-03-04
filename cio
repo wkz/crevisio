@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # PYTHON_ARGCOMPLETE_OK
 #
 # NAME
@@ -69,14 +69,14 @@ def dump(io, color):
     def red(txt):
         return paint(txt, "31")
 
-    print invert("%4.4s  %-40s") % ("SLOT" , "MODULE")
-    print "%4.4s  %-74s" % ("-", str(io))
+    print(invert("%4.4s  %-40s") % ("SLOT" , "MODULE"))
+    print("%4.4s  %-74s" % ("-", str(io)))
     for s, slot in io:
-        print "%4u  %-74s" % (s, slot)
-    print
+        print("%4u  %-74s" % (s, slot))
+    print()
 
-    print invert("%4s  %3s  %-4s  %-16s  %-5s") \
-        % ("SLOT", "PIN", "TYPE", "ALIAS" , "LEVEL")
+    print(invert("%4s  %3s  %-4s  %-16s  %-5s") \
+        % ("SLOT", "PIN", "TYPE", "ALIAS" , "LEVEL"))
 
     for s, slot in io:
         pins = slot.input_num + slot.output_num
@@ -90,9 +90,9 @@ def dump(io, color):
                 % (s, p, typ, name, level)
 
             if slot[p]:
-                print green(line)
+                print(green(line))
             else:
-                print red(line)
+                print(red(line))
 
 def on(io, pin):
     io[pin[0]][pin[1]] = True
@@ -129,7 +129,7 @@ for cfgfile in ["~/.cio.yaml", "~/.config/cio.yaml", "/etc/cio.yaml"]:
     if not os.path.exists(path):
         continue
 
-    cfg = yaml.load(open(path))
+    cfg = yaml.load(open(path), Loader=yaml.FullLoader)
     break
 
 
@@ -156,14 +156,14 @@ class PinParser(argparse.Action):
         if a:
             namespace.pin = (a["slot"], a["pin"])
         elif ":" in values:
-            namespace.pin = map(int, values.split(":"))
+            namespace.pin = list(map(int, values.split(":")))
         else:
             raise argparse.ArgumentError(self, values + " is not a known pin.")
 
 parser = argparse.ArgumentParser(prog='cio')
 parser.add_argument('pin', nargs='?', default=None, metavar='SLOT:PIN|ALIAS',
                     action=PinParser, help="Pin to operate on.").completer = PinCompleter
-parser.add_argument('cmd', nargs='?', default=None, choices=ops.keys(),
+parser.add_argument('cmd', nargs='?', default=None, choices=list(ops.keys()),
                     help="Power cycle, enable, disable or toggle output pin.")
 parser.add_argument('-a', dest='address', default=None, type=str, metavar='ADDR',
                     help="Crevis IO adapter to connect to")
@@ -205,7 +205,7 @@ if not args.cmd:
     if not args.pin:
         dump(io, args.color)
     else:
-        print repr(io[args.pin[0]][args.pin[1]])
+        print(repr(io[args.pin[0]][args.pin[1]]))
 else:
     if args.cmd not in ops:
         sys.exit("%s is not a known operation." % args.cmd)

@@ -12,7 +12,7 @@ class Module (object):
             self.output_start = adapter.hw.read_sr (regs.output_bit_start)
 
     def __str__ (self):
-        return self.adapter.hw.read_string (self.regs.product_name, 73)
+        return self.adapter.hw.read_string (self.regs.product_name, 73).decode("utf-8")
 
     def __repr__ (self):
         return str(self)

@@ -27,7 +27,8 @@ class Adapter (object):
             self.slots[slot] = module.Module (self, regs.slot_info[slot])
 
     def __str__ (self):
-        return "%s@%s" % (self.hw.read_string (regs.adapter_id.product_name, 34), self.host)
+        return "%s@%s" % (self.hw.read_string (regs.adapter_id.product_name, 34).decode("utf-8"),
+                          self.host)
 
     def __repr__ (self):
         ret = str(self) + ":\n"
@@ -38,7 +39,7 @@ class Adapter (object):
         return ret
 
     def __iter__ (self):
-        for k, v in self.slots.items():
+        for k, v in list(self.slots.items()):
             yield k, v
 
     def __getitem__ (self, slot):

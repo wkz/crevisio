@@ -1,11 +1,14 @@
 import struct
 import time
 
-import pymodbus.client.sync
 import pymodbus.register_read_message as rrm
 
+try:
+    from pymodbus.client import ModbusTcpClient
+except ImportError:
+    from pymodbus.client.sync import ModbusTcpClient
 
-class CrevisModbus (pymodbus.client.sync.ModbusTcpClient):
+class CrevisModbus (ModbusTcpClient):
     def read_sr (self, reg, maxlen=1):
         r = None
         tryCount = 5
